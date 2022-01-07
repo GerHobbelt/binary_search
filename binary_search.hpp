@@ -1,6 +1,6 @@
 /*
 	Copyright (C) 2014-2021 Igor van den Hoven ivdhoven@gmail.com
-	Copyright (C) 2021 Marcel Pi Nacy
+	Copyright (C) 2022 Marcel Pi Nacy
 
 	Permission is hereby granted, free of charge, to any person obtaining
 	a copy of this software and associated documentation files (the
