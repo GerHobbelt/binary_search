@@ -32,10 +32,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
 #include <time.h>
+#include <plf_nanotimer_c_api.h>
 
-unsigned int checks;
+static unsigned int checks;
 
 // linear search, needs to run backwards so it's stable
 
@@ -525,23 +525,17 @@ int adaptive_binary_search(int *array, unsigned int array_size, int key)
 
 // benchmark
 
-long long utime()
-{
-	struct timeval now_time;
+static int *o_array, *r_array;
+static int density, max, loop, top, rnd, runs, sequential;
+static double duration, best;
 
-	gettimeofday(&now_time, NULL);
-
-	return now_time.tv_sec * 1000000LL + now_time.tv_usec;
-}
-
-int *o_array, *r_array;
-int density, max, loop, top, rnd, runs, sequential;
-long long start, end, best;
-
-void execute(int (*algo_func)(int *, unsigned int, int), const char * algo_name)
+static void execute(int (*algo_func)(int *, unsigned int, int), const char * algo_name)
 {
 	long long stable, value;
 	unsigned int cnt, hit, miss;
+	nanotimer_data_t timer;
+
+	nanotimer(&timer);
 
 	srand(rnd);
 
@@ -557,7 +551,7 @@ void execute(int (*algo_func)(int *, unsigned int, int), const char * algo_name)
 		{
 			stable = 0;
 
-			start = utime();
+			nanotimer_start(&timer);
 
 			for (cnt = 0 ; cnt < loop ; cnt++)
 			{
@@ -577,7 +571,7 @@ void execute(int (*algo_func)(int *, unsigned int, int), const char * algo_name)
 		}
 		else
 		{
-			start = utime();
+			nanotimer_start(&timer);
 
 			for (cnt = 0 ; cnt < loop ; cnt++)
 			{
@@ -591,11 +585,12 @@ void execute(int (*algo_func)(int *, unsigned int, int), const char * algo_name)
 				}
 			}
 		}
-		end = utime();
 
-		if (best == 0 || end - start < best)
+		double duration = nanotimer_get_elapsed_us(&timer);
+
+		if (best == 0 || duration < best)
 		{
-			best = end - start;
+			best = duration;
 		}
 	}
 
@@ -607,12 +602,11 @@ void execute(int (*algo_func)(int *, unsigned int, int), const char * algo_name)
 	{
 		printf("| %30s | %10d | %10d | %10d | %10d | %10f |\n", algo_name, max, hit, miss, checks, best / 1000000.0);
 	}
-
 }
 
 #define run(algo) execute(&algo, #algo)
 
-int cmp_int(const void * a, const void * b)
+static int cmp_int(const void * a, const void * b)
 {
 	return *(int *) a - *(int *) b;
 }

@@ -32,14 +32,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
 #include <time.h>
+#include <plf_nanotimer_c_api.h>
 
-int checks;
+static int checks;
 
 // Avoid inlining to guarantee the benchmark is fair.
 
-__attribute__ ((noinline)) int cmp_int(const void * a, const void * b)
+static int cmp_int(const void * a, const void * b)
 {
         int fa = *(int *)a;
         int fb = *(int *)b;
@@ -83,22 +83,16 @@ void *monobound_bsearch(const void *key, const void *array, size_t nmemb, size_t
 
 // benchmark
 
-long long utime()
-{
-	struct timeval now_time;
+static int *o_array, *r_array;
+static int density, max, loop, top, rnd, runs;
+static double duration, best;
 
-	gettimeofday(&now_time, NULL);
-
-	return now_time.tv_sec * 1000000LL + now_time.tv_usec;
-}
-
-int *o_array, *r_array;
-int density, max, loop, top, rnd, runs;
-long long start, end, best;
-
-void execute(void *(*algo_func)(const void *, const void *, size_t, size_t, int (*cmp)(const void *, const void *)), const char * algo_name)
+static void execute(void *(*algo_func)(const void *, const void *, size_t, size_t, int (*cmp)(const void *, const void *)), const char * algo_name)
 {
 	unsigned int cnt, hit, miss;
+	nanotimer_data_t timer;
+
+	nanotimer(&timer);
 
 	srand(rnd);
 
@@ -110,7 +104,7 @@ void execute(void *(*algo_func)(const void *, const void *, size_t, size_t, int 
 		miss   = 0;
 		checks = 0;
 
-		start = utime();
+		nanotimer_start(&timer);
 
 		for (cnt = 0 ; cnt < loop ; cnt++)
 		{
@@ -123,11 +117,12 @@ void execute(void *(*algo_func)(const void *, const void *, size_t, size_t, int 
 				miss++;
 			}
 		}
-		end = utime();
 
-		if (best == 0 || end - start < best)
+		double duration = nanotimer_get_elapsed_us(&timer);
+
+		if (best == 0 || duration < best)
 		{
-			best = end - start;
+			best = duration;
 		}
 	}
 
